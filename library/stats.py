@@ -403,32 +403,7 @@ class Gpu:
         save_last_value(freq_ghz, cls.last_values_gpu_frequency,
                         theme_gpu_data['FREQUENCY']['LINE_GRAPH'].get("HISTORY_SIZE", DEFAULT_HISTORY_SIZE))
 
-        ################################ for backward compatibility only
-        gpu_mem_graph_data = theme_gpu_data['MEMORY']['GRAPH']
-        gpu_mem_radial_data = theme_gpu_data['MEMORY']['RADIAL']
-        if math.isnan(memory_percentage):
-            memory_percentage = 0
-            if gpu_mem_graph_data['SHOW'] or gpu_mem_radial_data['SHOW']:
-                logger.warning("Your GPU memory relative usage (%) is not supported yet")
-                gpu_mem_graph_data['SHOW'] = False
-                gpu_mem_radial_data['SHOW'] = False
 
-        gpu_mem_text_data = theme_gpu_data['MEMORY']['TEXT']
-        if math.isnan(memory_used_mb):
-            memory_used_mb = 0
-            if gpu_mem_text_data['SHOW']:
-                logger.warning("Your GPU memory absolute usage (M) is not supported yet")
-                gpu_mem_text_data['SHOW'] = False
-
-        display_themed_progress_bar(gpu_mem_graph_data, memory_percentage)
-        display_themed_percent_radial_bar(gpu_mem_radial_data, memory_percentage)
-        display_themed_value(
-            theme_data=gpu_mem_text_data,
-            value=int(memory_used_mb),
-            min_size=5,
-            unit=" M"
-        )
-        ################################ end of backward compatibility only
 
         # GPU usage (%)
         gpu_percent_graph_data = theme_gpu_data['PERCENTAGE']['GRAPH']
@@ -471,34 +446,36 @@ class Gpu:
         display_themed_percent_value(gpu_mem_percent_text_data, memory_percentage)
         display_themed_line_graph(gpu_mem_percent_line_graph_data, cls.last_values_gpu_mem_percentage)
 
-        # GPU mem. absolute usage (M)
+        # GPU mem. absolute usage (G)
         gpu_mem_used_text_data = theme_gpu_data['MEMORY_USED']['TEXT']
         if math.isnan(memory_used_mb):
             memory_used_mb = 0
             if gpu_mem_used_text_data['SHOW']:
-                logger.warning("Your GPU memory absolute usage (M) is not supported yet")
+                logger.warning("Your GPU memory absolute usage (G) is not supported yet")
                 gpu_mem_used_text_data['SHOW'] = False
 
+        memory_used_gb = memory_used_mb / 1024
         display_themed_value(
             theme_data=gpu_mem_used_text_data,
-            value=int(memory_used_mb),
+            value=f"{memory_used_gb:.2f}",
             min_size=5,
-            unit=" M"
+            unit=" G"
         )
 
-        # GPU mem. total memory (M)
+        # GPU mem. total memory (G)
         gpu_mem_total_text_data = theme_gpu_data['MEMORY_TOTAL']['TEXT']
         if math.isnan(total_memory_mb):
             total_memory_mb = 0
             if gpu_mem_total_text_data['SHOW']:
-                logger.warning("Your GPU total memory capacity (M) is not supported yet")
+                logger.warning("Your GPU total memory capacity (G) is not supported yet")
                 gpu_mem_total_text_data['SHOW'] = False
 
+        total_memory_gb = total_memory_mb / 1024
         display_themed_value(
             theme_data=gpu_mem_total_text_data,
-            value=int(total_memory_mb),
+            value=f"{total_memory_gb:.2f}",
             min_size=5,  # Adjust min_size as necessary for your display
-            unit=" M"  # Assuming the unit is in Megabytes
+            unit=" G"  # Assuming the unit is in Gigabytes
         )
 
         # GPU temperature (°C)
@@ -622,23 +599,27 @@ class Memory:
         display_themed_percent_value(memory_stats_theme_data['VIRTUAL']['PERCENT_TEXT'], virtual_percent)
         display_themed_line_graph(memory_stats_theme_data['VIRTUAL']['LINE_GRAPH'], cls.last_values_memory_virtual)
 
+        used_gb = sensors.Memory.virtual_used() / (1024 ** 3)
+        free_gb = sensors.Memory.virtual_free() / (1024 ** 3)
+        total_gb = (sensors.Memory.virtual_free() + sensors.Memory.virtual_used()) / (1024 ** 3)
+
         display_themed_value(
             theme_data=memory_stats_theme_data['VIRTUAL']['USED'],
-            value=int(sensors.Memory.virtual_used() / 1024 ** 2),
+            value=f"{used_gb:.2f}",
             min_size=5,
-            unit=" M"
+            unit=" G"
         )
         display_themed_value(
             theme_data=memory_stats_theme_data['VIRTUAL']['FREE'],
-            value=int(sensors.Memory.virtual_free() / 1024 ** 2),
+            value=f"{free_gb:.2f}",
             min_size=5,
-            unit=" M"
+            unit=" G"
         )
         display_themed_value(
             theme_data=memory_stats_theme_data['VIRTUAL']['TOTAL'],
-            value=int((sensors.Memory.virtual_free() + sensors.Memory.virtual_used()) / 1024 ** 2),
+            value=f"{total_gb:.2f}",
             min_size=5,
-            unit=" M"
+            unit=" G"
         )
 
 
@@ -768,7 +749,7 @@ class Date:
         time_format = hour_theme_data.get("FORMAT", 'medium')
         display_themed_value(
             theme_data=hour_theme_data,
-            value=f"{babel.dates.format_time(date_now, format=time_format, locale=lc_time)}"
+            value=f"{babel.dates.format_time(date_now, format=time_format, locale=lc_time)}".replace('\u202f', ' ')
         )
 
 
@@ -780,6 +761,24 @@ class SystemUptime:
             uptimesec = 4294036
         else:
             uptimesec = int(uptime())
+
+        days = uptimesec // (24 * 3600)
+        hours_total = uptimesec // 3600
+        minutes_total = uptimesec // 60
+
+        uptime_compact = ""
+        if days > 0:
+            hours = (uptimesec % (24 * 3600)) // 3600
+            uptime_compact = f"{days}day"
+            if hours > 0:
+                uptime_compact += f", {hours}hrs"
+        elif hours_total > 0:
+            minutes = (uptimesec % 3600) // 60
+            uptime_compact = f"{hours_total}hrs"
+            if minutes > 0:
+                uptime_compact += f", {minutes}mins"
+        else:
+            uptime_compact = f"{minutes_total}mins"
 
         uptimeformatted = str(datetime.timedelta(seconds=uptimesec))
 
@@ -795,6 +794,12 @@ class SystemUptime:
         display_themed_value(
             theme_data=systemuptime_formatted_theme_data,
             value=uptimeformatted
+        )
+
+        systemuptime_compact_theme_data = systemuptime_theme_data['COMPACT']['TEXT']
+        display_themed_value(
+            theme_data=systemuptime_compact_theme_data,
+            value=uptime_compact
         )
 
 

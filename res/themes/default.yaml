@@ -217,6 +217,9 @@ STATS:
     FORMATTED:
       TEXT:
         SHOW: False
+    COMPACT:
+      TEXT:
+        SHOW: False
   WEATHER:
     INTERVAL: 0
     TEMPERATURE:

@@ -32,28 +32,36 @@ from typing import Tuple
 import clr  # Clr is from pythonnet package. Do not install clr package
 import psutil
 from win32api import *
+from System.Reflection import Assembly
 
 import library.sensors.sensors as sensors
 from library.log import logger
 
-# Import LibreHardwareMonitor dll to Python
-lhm_dll = os.getcwd() + '\\external\\LibreHardwareMonitor\\LibreHardwareMonitorLib.dll'
-# noinspection PyUnresolvedReferences
-clr.AddReference(lhm_dll)
-# noinspection PyUnresolvedReferences
-clr.AddReference(os.getcwd() + '\\external\\LibreHardwareMonitor\\HidSharp.dll')
-# noinspection PyUnresolvedReferences
-from LibreHardwareMonitor import Hardware
+# Load LibreHardwareMonitor DLLs from local directory
+lhm_dir = os.path.abspath(r"external\LibreHardwareMonitor")
 
-File_information = GetFileVersionInfo(lhm_dll, "\\")
+logger.info(f"Loading LibreHardwareMonitor DLLs from: {lhm_dir}")
 
-ms_file_version = File_information['FileVersionMS']
-ls_file_version = File_information['FileVersionLS']
+try:
+    # Load all required dependencies
+    Assembly.LoadFile(os.path.join(lhm_dir, 'HidSharp.dll'))
+    Assembly.LoadFile(os.path.join(lhm_dir, 'System.Memory.dll'))
+    Assembly.LoadFile(os.path.join(lhm_dir, 'System.Buffers.dll'))
+    Assembly.LoadFile(os.path.join(lhm_dir, 'System.Runtime.CompilerServices.Unsafe.dll'))
+    Assembly.LoadFile(os.path.join(lhm_dir, 'System.Numerics.Vectors.dll'))
+    Assembly.LoadFile(os.path.join(lhm_dir, 'RAMSPDToolkit-NDD.dll'))
+    lhm_assembly = Assembly.LoadFile(os.path.join(lhm_dir, 'LibreHardwareMonitorLib.dll'))
+    
+    # Import LibreHardwareMonitor
+    from LibreHardwareMonitor import Hardware
+    
+    logger.info("LibreHardwareMonitor DLLs loaded successfully")
+    
+except Exception as e:
+    logger.error(f"Failed to load LibreHardwareMonitor DLLs: {e}", exc_info=True)
+    sys.exit(1)
 
-logger.debug("Found LibreHardwareMonitorLib %s" % ".".join([str(HIWORD(ms_file_version)), str(LOWORD(ms_file_version)),
-                                                            str(HIWORD(ls_file_version)),
-                                                            str(LOWORD(ls_file_version))]))
-
+# Check if running as admin
 if ctypes.windll.shell32.IsUserAnAdmin() == 0:
     logger.error(
         "Program is not running as administrator. Please run with admin rights or choose another HW_SENSORS option in "
@@ -63,15 +71,16 @@ if ctypes.windll.shell32.IsUserAnAdmin() == 0:
     except:
         os._exit(0)
 
+# Initialize LibreHardwareMonitor
 handle = Hardware.Computer()
 handle.IsCpuEnabled = True
-handle.IsGpuEnabled = True
+handle.IsGpuEnabled = True  
 handle.IsMemoryEnabled = True
 handle.IsMotherboardEnabled = True  # For CPU Fan Speed
 handle.IsControllerEnabled = True  # For CPU Fan Speed
 handle.IsNetworkEnabled = True
-handle.IsStorageEnabled = True
-handle.IsPsuEnabled = False
+handle.IsStorageEnabled = True 
+handle.IsPsuEnabled = True
 handle.Open()
 for hardware in handle.Hardware:
     if hardware.HardwareType == Hardware.HardwareType.Cpu:
@@ -215,7 +224,11 @@ class Cpu(sensors.Cpu):
     def temperature() -> float:
         cpu = get_hw_and_update(Hardware.HardwareType.Cpu)
         try:
-            # By default, the average temperature of all CPU cores will be used
+            # First, try to get the temperature from the Tctl/Tdie sensor, common on AMD Ryzen CPUs
+            for sensor in cpu.Sensors:
+                if sensor.SensorType == Hardware.SensorType.Temperature and str(sensor.Name) == "Core (Tctl/Tdie)" and sensor.Value is not None:
+                    return float(sensor.Value)
+            # If not available, default to the average temperature of all CPU cores
             for sensor in cpu.Sensors:
                 if sensor.SensorType == Hardware.SensorType.Temperature and str(sensor.Name).startswith(
                         "Core Average") and sensor.Value is not None:
@@ -235,7 +248,8 @@ class Cpu(sensors.Cpu):
                 if sensor.SensorType == Hardware.SensorType.Temperature and str(sensor.Name).startswith(
                         "Core") and sensor.Value is not None:
                     return float(sensor.Value)
-        except:
+        except Exception as e:
+            logger.error(e, exc_info=True)
             pass
 
         return math.nan
@@ -392,23 +406,32 @@ class Memory(sensors.Memory):
         for sensor in memory.Sensors:
             if sensor.SensorType == Hardware.SensorType.Data and str(sensor.Name).startswith(
                     "Virtual Memory Used") and sensor.Value is not None:
-                virtual_mem_used = int(sensor.Value)
+                virtual_mem_used = float(sensor.Value)
             elif sensor.SensorType == Hardware.SensorType.Data and str(sensor.Name).startswith(
                     "Memory Used") and sensor.Value is not None:
-                mem_used = int(sensor.Value)
+                mem_used = float(sensor.Value)
             elif sensor.SensorType == Hardware.SensorType.Data and str(sensor.Name).startswith(
                     "Virtual Memory Available") and sensor.Value is not None:
-                virtual_mem_available = int(sensor.Value)
+                virtual_mem_available = float(sensor.Value)
             elif sensor.SensorType == Hardware.SensorType.Data and str(sensor.Name).startswith(
                     "Memory Available") and sensor.Value is not None:
-                mem_available = int(sensor.Value)
+                mem_available = float(sensor.Value)
+
+        # Check if we got valid values before calculating
+        if math.isnan(virtual_mem_used) or math.isnan(mem_used) or math.isnan(virtual_mem_available) or math.isnan(mem_available):
+            # Missing sensor data, return 0% swap
+            return 0.0
 
         # Compute swap stats from virtual / physical memory stats
         swap_used = virtual_mem_used - mem_used
         swap_available = virtual_mem_available - mem_available
         swap_total = swap_used + swap_available
+        
         try:
-            percent_swap = swap_used / swap_total * 100.0
+            if swap_total > 0:
+                percent_swap = swap_used / swap_total * 100.0
+            else:
+                percent_swap = 0.0
         except:
             # No swap / pagefile disabled
             percent_swap = 0.0

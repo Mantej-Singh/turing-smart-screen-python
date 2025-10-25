@@ -14,8 +14,8 @@ static_images:
     HEIGHT: 320
 static_text:
   DISK_LABEL:
-    TEXT: "DISK"
-    X: 420
+    TEXT: "JARVIS(C:)"
+    X: 350
     Y: 36
     FONT: roboto/Roboto-Bold.ttf
     FONT_SIZE: 18
@@ -52,7 +52,6 @@ STATS:
         FONT: generale-mono/GeneraleMonoA.ttf
         FONT_SIZE: 22
         FONT_COLOR: 255, 0, 173
-        # BACKGROUND_COLOR: 0, 0, 0
         BACKGROUND_IMAGE: background.png
     FREQUENCY:
       INTERVAL: 5
@@ -78,6 +77,21 @@ STATS:
         FONT_SIZE: 16
         FONT_COLOR: 128, 255, 255
         BACKGROUND_IMAGE: background.png
+    LOADS:
+      INTERVAL: 1
+      "1":  # This is for the 1-minute load average
+        LINE_GRAPH:
+          # Graph of CPU load average over time, at the bottom-center
+          SHOW: True
+          X: 140      # (480/2) - (200/2)
+          Y: 260      # 320 - 50 - 10 (height - margin)
+          WIDTH: 200
+          HEIGHT: 50
+          MIN_VALUE: 0
+          MAX_VALUE: 100
+          HISTORY_SIZE: 100
+          LINE_COLOR: 16, 223, 239  # A blue from the theme
+          LINE_WIDTH: 2
   GPU:
     INTERVAL: 1
     PERCENTAGE:
@@ -102,7 +116,31 @@ STATS:
         FONT_COLOR: 128, 255, 255
         # BACKGROUND_COLOR: 0, 0, 0
         BACKGROUND_IMAGE: background.png
-    MEMORY:
+      LINE_GRAPH:
+        # Graph of GPU usage over time, at the bottom-center
+        SHOW: True
+        X: 165      # RE-CENTERED for new width
+        Y: 225      # MOVED down to fit better from 220
+        WIDTH: 150  # SHORTENED to avoid collisions
+        HEIGHT: 50
+        MIN_VALUE: 0
+        MAX_VALUE: 100
+        HISTORY_SIZE: 100
+        AUTOSCALE: True  # ADDED to "zoom in" on data
+        LINE_COLOR: 255, 0, 0  # CHANGED to red
+        LINE_WIDTH: 2
+        BACKGROUND_IMAGE: background.png  # ADDED for transparent background
+    MEMORY_USED:
+      TEXT:
+        SHOW: True
+        SHOW_UNIT: True
+        X: 386
+        Y: 240
+        FONT: generale-mono/GeneraleMonoA.ttf
+        FONT_SIZE: 16
+        FONT_COLOR: 128, 255, 255
+        BACKGROUND_IMAGE: background.png
+    MEMORY_PERCENT:
       GRAPH:
         SHOW: True
         X: 383
@@ -114,15 +152,6 @@ STATS:
         BAR_COLOR: 255, 0, 173
         BAR_OUTLINE: False
         BACKGROUND_COLOR: 8, 20, 66
-      TEXT:
-        SHOW: True
-        SHOW_UNIT: True
-        X: 386
-        Y: 240
-        FONT: generale-mono/GeneraleMonoA.ttf
-        FONT_SIZE: 16
-        FONT_COLOR: 128, 255, 255
-        BACKGROUND_IMAGE: background.png
       RADIAL:
         SHOW: True
         X: 348
@@ -142,7 +171,6 @@ STATS:
         FONT: generale-mono/GeneraleMonoA.ttf
         FONT_SIZE: 14
         FONT_COLOR: 128, 255, 255
-        # BACKGROUND_COLOR: 0, 0, 0
         BACKGROUND_IMAGE: background.png
     TEMPERATURE:
       TEXT:
@@ -241,6 +269,19 @@ STATS:
           FONT_SIZE: 16
           FONT_COLOR: 128, 255, 255
           BACKGROUND_IMAGE: background.png
+        LINE_GRAPH:
+          SHOW: True
+          X: 150
+          Y: 30
+          WIDTH: 200
+          HEIGHT: 40
+          MIN_VALUE: 0
+          MAX_VALUE: 10000000 # 10MB/s
+          HISTORY_SIZE: 100
+          AUTOSCALE: True
+          LINE_COLOR: '#7396d1'  # Change this to your desired color
+          LINE_WIDTH: 2
+          BACKGROUND_IMAGE: background.png
   DATE:
     INTERVAL: 1
     DAY:
@@ -261,7 +302,21 @@ STATS:
         Y: 10
         WIDTH: 100
         FONT: generale-mono/GeneraleMonoA.ttf
-        FONT_SIZE: 12
+        FONT_SIZE: 14
         FONT_COLOR: 128, 255, 255
         BACKGROUND_IMAGE: background.png
         ANCHOR: mt  # Text is centered (needs fixed WIDTH)
+  UPTIME: # Uptime: Show the system uptime, either as a formatted string (e.g., "10 days, 5:30:15") or in total
+    INTERVAL: 60 # Update every minute
+    COMPACT:
+      TEXT:
+        SHOW: True
+        X: 145
+        Y: 285
+        WIDTH: 200
+        FONT: generale-mono/GeneraleMonoA.ttf
+        FONT_SIZE: 16
+        FONT_COLOR: 128, 255, 255
+        BACKGROUND_IMAGE: background.png
+        ALIGN: center
+        ANCHOR: mt

@@ -1,0 +1,23 @@
+# Project Progress
+
+- **2025-10-19:** Started investigation into theme customization. Goal is to replace the CPU radial graph with a line graph.
+- **2025-10-19:** Read theme documentation and confirmed `LINE_GRAPH` is a supported widget. Replaced the `RADIAL` graph with a `LINE_GRAPH` for CPU percentage in the `LandscapeMagicBlue` theme.
+- **2025-10-19:** Added a separate `TEXT` widget to display the current CPU percentage value, positioned over the new line graph.
+- **2025-10-19:** Fixed a rendering issue where the text was blinking by removing the background from the `LINE_GRAPH` widget, making it transparent.
+- **2025-10-19:** Enhanced the `start_monitor_silently.bat` script to function as a 'restart' script by adding a command to terminate existing instances before launch.
+- **2025-10-19:** Rolled back the unsuccessful `LINE_GRAPH` experiment for CPU percentage, restoring the original `RADIAL` graph configuration.
+- **2025-10-19:** Added a new `LINE_GRAPH` widget to the bottom-center of the theme to display the CPU 1-minute load average.
+- **2025-10-19:** Diagnosing issue: The new CPU load graph is not appearing on the display.
+- **2025-10-19:** Implemented a `LINE_GRAPH` for GPU percentage at the bottom-center of the screen, as the CPU Load sensor was unavailable.
+- **2025-10-19:** Fixed all reported visual issues with the new GPU line graph (background, zoom, width) and changed its color to red.
+- **2025-10-24:** Began investigation into missing CPU temperature value.
+- **2025-10-24:** Added debugging code to `library/sensors/sensors_librehardwaremonitor.py` to log all available CPU sensors.
+- **2025-10-24:** Created a dedicated script `debug_sensors.py` to isolate and identify CPU sensors from LibreHardwareMonitor.
+- **2025-10-24:** Corrected a file path error in the `debug_sensors.py` script.
+- **2025-10-24:** Fixed missing CPU temperature by adding 'Core (Tctl/Tdie)' to the list of recognized sensor names, improving support for AMD Ryzen CPUs.
+- **2025-10-24:** Implemented a more robust method for loading LibreHardwareMonitor DLLs, using a hardcoded path to the FanControl directory to avoid long path issues and ensure all dependencies are loaded.
+- **2025-10-21:** Changed RAM display from MB to GB with 2 decimal places in `library/stats.py`.
+- **2025-10-21:** Changed GPU RAM display from MB to GB with 2 decimal places in `library/stats.py` and updated the theme to use a progress bar for the usage percentage.
+- **2025-10-21:** Added a network download speed line graph to the top center of the theme.
+- **2025-10-21:** Adjusted the network graph's position and color, and fixed a bug where the GPU RAM percentage radial graph was missing.
+- **2025-10-21:** Implemented a new compact system uptime display and added it to the theme.
